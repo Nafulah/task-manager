@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react'
 export default function Dashboard({ onLogout }){
   const [tasks,setTasks]=useState([])
   const [title,setTitle]=useState("")
-  const [editingId,setEditingId]=useState(null)
-  const [editTitle,setEditTitle]=useState("")
+  const [description,setDescription]=useState("")
+  const [deadline,setDeadline]=useState("")
+  const [status, setStatus]=useState("Pending")
 
   useEffect(()=>{
     const getTasks = async()=>{
@@ -16,90 +17,86 @@ export default function Dashboard({ onLogout }){
     getTasks()
   },[])
 
-  const addTask = async(e)=>{
-    e.preventDefault()
-    const token = localStorage.getItem("token")
+  const addTask = async (e) => {
+  e.preventDefault();
+  try {
+    const token = localStorage.getItem("token");
     const res = await fetch("http://localhost:5000/api/tasks",{
-      method:"POST",
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json", 
+        "x-auth-token": token 
+      },
+      body: JSON.stringify({ title, description, deadline, status })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || "Failed");
+    setTasks([data, ...tasks]);
+    setTitle(""); setDescription(""); setDeadline(""); setStatus("Pending");
+  } catch (err) {
+    alert(err.message);
+    console.log(err);
+  }
+}
+  const toggleDone = async(task)=>{
+    const token = localStorage.getItem("token")
+    const res = await fetch(`http://localhost:5000/api/tasks/${task._id}`,{
+      method:"PUT",
       headers: { "Content-Type":"application/json", "x-auth-token": token },
-      body: JSON.stringify({title})
+      body: JSON.stringify({completed:!task.completed, status: !task.completed? "Completed" : "Pending"})
     })
-    const newTask = await res.json()
-    setTasks([...tasks, newTask])
-    setTitle("")
+    const updated = await res.json()
+    setTasks(tasks.map(t=> t._id === task._id? updated : t))
   }
 
   const deleteTask = async(id)=>{
     const token = localStorage.getItem("token")
     await fetch(`http://localhost:5000/api/tasks/${id}`,{ method:"DELETE", headers: { "x-auth-token": token } })
-    setTasks(tasks.filter(t=> t._id !== id))
-  }
-
-  const startEdit = (task)=>{
-    setEditingId(task._id)
-    setEditTitle(task.title)
-  }
-
-  const saveEdit = async(id)=>{
-    const token = localStorage.getItem("token")
-    const res = await fetch(`http://localhost:5000/api/tasks/${id}`,{
-      method:"PUT",
-      headers: { "Content-Type":"application/json", "x-auth-token": token },
-      body: JSON.stringify({title: editTitle})
-    })
-    const updated = await res.json()
-    setTasks(tasks.map(t=> t._id === id ? updated : t))
-    setEditingId(null)
+    setTasks(tasks.filter(t=> t._id!== id))
   }
 
   return(
-    <div style={{background:"#16423C", padding:"25px", borderRadius:"16px", color:"white", boxShadow:"0 10px 25px rgba(0,0,0,0.3)"}}>
-      
-      {/* FIXED TITLE - No more overlap */}
-      <div style={{textAlign:"center", marginBottom:"10px"}}>
-        <h1 style={{color:"#C4DFE6", margin:"0", fontSize:"32px", lineHeight:"1.2", letterSpacing:"0.5px"}}>🌿 Jungle Task Manager</h1>
-        <p style={{color:"#E8FFCE", opacity:0.8, marginTop:"8px"}}>Each task shows date & time you created it</p>
-      </div>
+    <div style={{background:"#16423C", padding:"25px", borderRadius:"16px", color:"white", maxWidth:"600px", margin:"auto"}}>
+      <h1 style={{color:"#C4DFE6", textAlign:"center", fontSize: "28px", margin: "0", fontWeight: "900", letterSpacing: "0.5pX"}}>🌿 Jungle Task Manager - Phase 3</h1>
 
-      <div style={{background:"rgba(255,255,255,0.08)", padding:"15px", borderRadius:"12px", margin:"20px 0", display:"flex", gap:"10px"}}>
-        <input placeholder="Add new task..." value={title} onChange={e=>setTitle(e.target.value)} required 
-          style={{flex:1, padding:"12px", borderRadius:"8px", border:"none", outline:"none", fontSize:"14px"}} />
-        <button onClick={addTask} style={{padding:"12px 20px", background:"#C4DFE6", color:"#16423C", border:"none", borderRadius:"8px", fontWeight:"bold", cursor:"pointer"}}>Add</button>
-      </div>
+      {/* 1. FORM FOR CREATING NEW TASKS */}
+      <form onSubmit={addTask} style={{background:"rgba(255,255,255,0.08)", padding:"15px", borderRadius:"12px", margin:"20px 0", display:"flex", flexDirection:"column", gap:"10px"}}>
+        <input placeholder="Task title*" value={title} onChange={e=>setTitle(e.target.value)} required
+          style={{padding:"12px", borderRadius:"8px", border:"none"}} />
+        <textarea placeholder="Description" value={description} onChange={e=>setDescription(e.target.value)}
+          style={{padding:"12px", borderRadius:"8px", border:"none"}} />
+        <select value={status} onChange={e=>setStatus(e.target.value)} style={{padding:"12px", borderRadius:"8px", border:"none"}}>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+        </select>
+        <input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)}
+        style={{padding:"12px", borderRadius:"8px", border:"none"}} />
+        <button type="submit" style={{padding:"12px", background:"#C4DFE6", color:"#16423C", border:"none", borderRadius:"8px", fontWeight:"bold", cursor:"pointer"}}>Add Task</button>
+        </form>
 
+      {/* 3. & 4. RETRIEVE AND DISPLAY LIST */}
       <div style={{display:"flex", flexDirection:"column", gap:"10px"}}>
-        {tasks.map(task=>(
-          <div key={task._id} style={{background:"#EAF6F6", color:"#16423C", padding:"14px 16px", borderRadius:"10px", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-            {editingId === task._id ? (
-              <div style={{display:"flex", gap:"8px", width:"100%"}}>
-                <input value={editTitle} onChange={e=>setEditTitle(e.target.value)} style={{flex:1, padding:"8px", borderRadius:"6px", border:"1px solid #6A9C89"}} />
-                <button onClick={()=>saveEdit(task._id)} style={btnGreen}>Save</button>
-                <button onClick={()=>setEditingId(null)} style={btnGray}>Cancel</button>
+        {tasks.length === 0? <p style={{textAlign:"center", color:"#E8FFCE"}}>No tasks yet. Add one above!</p> : 
+          tasks.map(task=>(
+          <div key={task._id} style={{background: task.completed? "#B8C5B8" : "#EAF6F6", color:"#16423C", padding:"14px 16px", borderRadius:"10px", display:"flex", gap:"10px"}}>
+            <input type="checkbox" checked={task.completed} onChange={()=>toggleDone(task)} style={{width:"20px", height:"20px", accentColor:"#16423C"}} />
+            <div style={{flex:1}}>
+              <div style={{fontWeight:"700", textDecoration: task.completed? "line-through" : "none"}}>{task.title}</div>
+              <div style={{fontSize:"13px", margin:"4px 0"}}>{task.description}</div>
+              <div style={{fontSize:"12px", color:"#6A9C89"}}>
+                Status: <b>{task.completed? "Completed" : task.status}</b> | Deadline: {task.deadline? new Date(task.deadline).toLocaleDateString() : "No deadline"} <br/>
+                🗓️ Created: {new Date(task.createdAt).toLocaleString()}
               </div>
-            ) : (
-              <>
-                <div>
-                  <div style={{fontWeight:"600", fontSize:"15px"}}>{task.title}</div>
-                  <div style={{fontSize:"12px", color:"#6A9C89", marginTop:"4px"}}>🗓️ {new Date(task.createdAt).toLocaleString()}</div>
-                </div>
-                <div style={{display:"flex", gap:"6px"}}>
-                  <button onClick={()=>startEdit(task)} style={btnGreen}>Edit</button>
-                  <button onClick={()=>deleteTask(task._id)} style={btnRed}>Delete</button>
-                </div>
-              </>
-            )}
+            </div>
+            <button onClick={()=>deleteTask(task._id)} style={{background:"#C25B56", color:"white", border:"none", padding:"6px 12px", borderRadius:"6px", cursor:"pointer", height:"fit-content"}}>Delete</button>
           </div>
         ))}
       </div>
 
-      {tasks.length === 0 && <p style={{textAlign:"center", color:"#C4DFE6", marginTop:"20px", opacity:0.7}}>No tasks yet - add one above!</p>}
-
-      <div style={{textAlign:"center", marginTop:"25px"}}>
-        <button onClick={()=>{localStorage.removeItem("token"); onLogout()}} style={{padding:"10px 22px", background:"#0F2C26", color:"#C4DFE6", border:"1px solid #6A9C89", borderRadius:"8px", cursor:"pointer"}}>Logout</button>
+      <div style={{textAlign:"center", marginTop:"20px"}}>
+        <button onClick={()=>{localStorage.removeItem("token"); onLogout()}} style={{padding:"8px 18px", background:"#0F2C26", color:"#C4DFE6", border:"1px solid #6A9C89", borderRadius:"8px"}}>Logout</button>
       </div>
     </div>
   )
 }
-const btnGreen = {background:"#6A9C89", color:"white", border:"none", padding:"6px 12px", borderRadius:"6px", cursor:"pointer", fontSize:"12px"}
-const btnRed = {background:"#C25B56", color:"white", border:"none", padding:"6px 12px", borderRadius:"6px", cursor:"pointer", fontSize:"12px"}
-const btnGray = {background:"#888", color:"white", border:"none", padding:"6px 12px", borderRadius:"6px", cursor:"pointer", fontSize:"12px"}
