@@ -6,7 +6,11 @@ export default function Dashboard({ onLogout }){
   const [description,setDescription]=useState("")
   const [deadline,setDeadline]=useState("")
   const [status, setStatus]=useState("Pending")
-
+  const [editingTask, setEditingTask]=useState(null);
+  const[editTitle, setEditTitle]=useState("");
+  const[editDesc, setEditDesc]=useState("");
+  const[editStatus, setEditStatus]=useState("Pending");
+  const[editDeadline, setEditDeadline]=useState("");
   useEffect(()=>{
     const getTasks = async()=>{
       const token = localStorage.getItem("token")
@@ -48,16 +52,40 @@ export default function Dashboard({ onLogout }){
     const updated = await res.json()
     setTasks(tasks.map(t=> t._id === task._id? updated : t))
   }
-
+//DELETE TASK
   const deleteTask = async(id)=>{
     const token = localStorage.getItem("token")
     await fetch(`http://localhost:5000/api/tasks/${id}`,{ method:"DELETE", headers: { "x-auth-token": token } })
     setTasks(tasks.filter(t=> t._id!== id))
   }
+//EDIT TASK
+const startEdit = (task) => {
+  setEditingTask(task._id);
+  setEditTitle(task.title);
+  setEditDesc(task.description || "");
+  setEditStatus(task.status || "Pending");
+  // Simple: take first 10 chars, works 100%
+  if (task.deadline) {
+    setEditDeadline(String(task.deadline).substring(0,10));
+  } else {
+    setEditDeadline("");
+  }
+};
+const updateTask = async (id) => {
+  const token = localStorage.getItem("token");
+  const res = await fetch(`http://localhost:5000/api/tasks/${id}`,{
+      method:"PUT",
+      headers: { "Content-Type":"application/json", "x-auth-token": token },
+      body: JSON.stringify({title: editTitle, description: editDesc, status: editStatus, deadline: editDeadline})
+    });
+    const updated = await res.json();
+    setTasks(tasks.map(t => t._id === id ? updated : t));
+    setEditingTask(null);
+};
 
   return(
     <div style={{background:"#16423C", padding:"25px", borderRadius:"16px", color:"white", maxWidth:"600px", margin:"auto"}}>
-      <h1 style={{color:"#C4DFE6", textAlign:"center", fontSize: "28px", margin: "0", fontWeight: "900", letterSpacing: "0.5pX"}}>🌿 Jungle Task Manager - Phase 3</h1>
+      <h1 style={{color:"#C4DFE6", textAlign:"center", fontSize: "28px", margin: "0", fontWeight: "900", letterSpacing: "0.5pX"}}>🌿 Jungle Task Manager - Phase 4</h1>
 
       {/* 1. FORM FOR CREATING NEW TASKS */}
       <form onSubmit={addTask} style={{background:"rgba(255,255,255,0.08)", padding:"15px", borderRadius:"12px", margin:"20px 0", display:"flex", flexDirection:"column", gap:"10px"}}>
@@ -70,8 +98,7 @@ export default function Dashboard({ onLogout }){
             <option value="In Progress">In Progress</option>
             <option value="Completed">Completed</option>
         </select>
-        <input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)}
-        style={{padding:"12px", borderRadius:"8px", border:"none"}} />
+        <input type="text" value={editDeadline} onChange={e=>setEditDeadline(e.target.value)} placeholder="YYYY-MM-DD" style={{width:"100%", marginBottom:5, padding:6}} />
         <button type="submit" style={{padding:"12px", background:"#C4DFE6", color:"#16423C", border:"none", borderRadius:"8px", fontWeight:"bold", cursor:"pointer"}}>Add Task</button>
         </form>
 
@@ -89,7 +116,26 @@ export default function Dashboard({ onLogout }){
                 🗓️ Created: {new Date(task.createdAt).toLocaleString()}
               </div>
             </div>
-            <button onClick={()=>deleteTask(task._id)} style={{background:"#C25B56", color:"white", border:"none", padding:"6px 12px", borderRadius:"6px", cursor:"pointer", height:"fit-content"}}>Delete</button>
+            <div style={{display:"flex", flexDirection:"column", gap:"6px"}}>
+  {editingTask === task._id ? (
+    <>
+      <input value={editTitle} onChange={(e)=>setEditTitle(e.target.value)} placeholder='Title' style={{padding:"6px", borderRadius:"5px", border:"1px solid #ccc", width:"130px"}} />
+      <input value={editDesc} onChange={(e)=>setEditDesc(e.target.value)} placeholder='Description' style={{padding:"6px", borderRadius:"5px", border:"1px solid #ccc", width:"130px"}} />
+      <select value={editStatus} onChange={(e)=>setEditStatus(e.target.value)} style={{padding:"6px", borderRadius:"5px", width:"146px"}}>
+          <option>Pending</option><option>In Progress</option><option>Completed</option>
+      </select>
+      <input  type="date" value="{editDeadline}" onChange={(e)=>setEditDeadline(e.target.value)} placeholder='Deadline' style={{padding:"6px", borderRadius:"5px", border:"1px solid #ccc", width:"130px"}} />
+
+      <button onClick={()=>updateTask(task._id)} style={{background:"#52B788", color:"white", border:"none", padding:"6px 10px", borderRadius:"6px", cursor:"pointer"}}>Save</button>
+      <button onClick={()=>setEditingTask(null)} style={{background:"#ccc", border:"none", padding:"6px 10px", borderRadius:"6px", cursor:"pointer"}}>Cancel</button>
+    </>
+  ) : (
+    <>
+      <button onClick={()=>startEdit(task)} style={{background:"#40916C", color:"white", border:"none", padding:"6px 10px", borderRadius:"6px", cursor:"pointer"}}>Edit</button>
+      <button onClick={()=>deleteTask(task._id)} style={{background:"#C25856", color:"white", border:"none", padding:"6px 10px", borderRadius:"6px", cursor:"pointer"}}>Delete</button>
+    </>
+  )}
+</div>
           </div>
         ))}
       </div>

@@ -32,11 +32,29 @@ router.post("/", auth, async (req, res) => {
 });
 
 // PUT - toggle complete
+// PUT - Edit task + toggle complete (Phase 4)
 router.put("/:id", auth, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
-    task.completed = !task.completed;
-    task.status = task.completed ? "Completed" : "Pending";
+    if (!task) return res.status(404).json({ msg: "Task not found" });
+
+    // If body has edit data, update full task
+    if (req.body.title !== undefined || req.body.description !== undefined || req.body.status !== undefined || req.body.deadline !== undefined) {
+      if (req.body.title !== undefined) task.title = req.body.title;
+      if (req.body.description !== undefined) task.description = req.body.description;
+      if (req.body.status !== undefined) {
+        task.status = req.body.status;
+        task.completed = req.body.status === "Completed";
+      }
+      if (req.body.deadline !== undefined) {
+        task.deadline = req.body.deadline ? new Date(req.body.deadline) : null;
+      }
+    } else {
+      // Otherwise just toggle complete (for checkbox)
+      task.completed = !task.completed;
+      task.status = task.completed ? "Completed" : "Pending";
+    }
+
     await task.save();
     res.json(task);
   } catch (err) {
