@@ -10,7 +10,9 @@ export default function Login({ onLogin }){
     })
     const data = await res.json()
     if(data.token){
-      localStorage.setItem("token", data.token)
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("userEmail", data.user.email);
       setForm({email:"",password:""})
       onLogin()
     } else alert(data.msg)

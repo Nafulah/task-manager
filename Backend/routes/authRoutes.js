@@ -38,10 +38,31 @@ router.post('/login', async(req,res)=>{
 
     // Create JWT token (Requirement 2)
     const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: '1h'})
-    res.json({token, user: {id: user._id, name: user.name, email: user.email}})
+   res.json({ 
+  token, 
+  user: { 
+    id: user.id, 
+    name: user.name, 
+    email: user.email 
+  } 
+});
   } catch(err){
     res.status(500).json({msg: err.message})
   }
 })
+
+// Get logged user
+router.get("/user", async (req, res) => {
+  try {
+    const token = req.headers["x-auth-token"];
+    const jwt = require("jsonwebtoken");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
+    const User = require("../models/User");
+    const user = await User.findById(decoded.id).select("-password");
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router
