@@ -114,7 +114,7 @@ export default function Dashboard({ onLogout }) {
 
         {errorMsg && <div style={{ background:"#ffcdd2", color:"#b71c1c", padding:8, borderRadius:8, marginBottom:10 }}>Error: {errorMsg}</div>}
 
-        <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Task title* like CHAPATI" style={{ width:"100%", padding:10, marginBottom:8, borderRadius:8, border:"1px solid #81c784" }} />
+        <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Task title* like READING" style={{ width:"100%", padding:10, marginBottom:8, borderRadius:8, border:"1px solid #81c784" }} />
         <textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Description" style={{ width:"100%", padding:10, marginBottom:8, borderRadius:8, border:"1px solid #81c784" }} />
         <select value={status} onChange={e=>setStatus(e.target.value)} style={{ width:"100%", padding:10, marginBottom:8, borderRadius:8, border:"1px solid #81c784" }}>
           <option>Pending</option><option>In Progress</option><option>Completed</option>
