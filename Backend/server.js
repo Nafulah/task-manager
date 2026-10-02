@@ -21,16 +21,10 @@ app.use('/api/auth', require('./routes/authRoutes')) //  Auth routes
 app.use('/api/tasks', require('./routes/taskRoutes')) //  Protected task routes
 
 // Serve frontend in production
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, '../Frontend/dist')));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-});
- // Serve frontend for Azure whole-code deploy
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  res.sendFile(path.join(__dirname, '../Frontend/dist/index.html'));
 });
 // Start server
-app.listen(process.env.PORT, ()=> console.log(`Server running on port ${process.env.PORT}`))
+app.listen(process.env.PORT || 5000, () => console.log(`Server running on port ${process.env.PORT || 5000}`))
