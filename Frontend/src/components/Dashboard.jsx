@@ -22,7 +22,7 @@ export default function Dashboard({ onLogout }) {
   const fetchAgain = async () => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("http://localhost:5000/api/tasks", { headers: { "x-auth-token": token } });
+      const res = await fetch("/api/tasks", { headers: { "x-auth-token": token } });
       const data = await res.json();
       if (Array.isArray(data)) { setTasks(data); setErrorMsg(""); }
       else { setErrorMsg(JSON.stringify(data)); }
@@ -32,7 +32,7 @@ export default function Dashboard({ onLogout }) {
   const addTask = async () => {
     if (!title.trim()) return alert("Title required");
     const token = localStorage.getItem("token");
-    const res = await fetch("http://localhost:5000/api/tasks", {
+    const res = await fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-auth-token": token },
       body: JSON.stringify({ title, description, status, deadline: deadline || null })
@@ -45,13 +45,13 @@ export default function Dashboard({ onLogout }) {
 
   const deleteTask = async (id) => {
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/tasks/${id}`, { method: "DELETE", headers: { "x-auth-token": token } });
+    await fetch(`/api/tasks/${id}`, { method: "DELETE", headers: { "x-auth-token": token } });
     fetchAgain();
   };
 
   const toggleTask = async (id) => {
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/tasks/${id}`, { method: "PUT", headers: { "x-auth-token": token }, body: JSON.stringify({ completed: true }) });
+    await fetch(`/api/tasks/${id}`, { method: "PUT", headers: { "x-auth-token": token }, body: JSON.stringify({ completed: true }) });
     fetchAgain();
   };
 
@@ -64,7 +64,7 @@ export default function Dashboard({ onLogout }) {
 
   const updateTask = async (id) => {
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/tasks/${id}`, {
+    await fetch(`/api/tasks/${id}`, {
       method: "PUT", headers: { "Content-Type": "application/json", "x-auth-token": token },
       body: JSON.stringify({ title: editTitle, description: editDesc, status: editStatus, deadline: editDeadline || null })
     });
