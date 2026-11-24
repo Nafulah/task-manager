@@ -1,29 +1,33 @@
 import { useState } from 'react'
-export default function Register(){
-  const [form,setForm]=useState({name:"",email:"",password:""})
-  const handleSubmit = async(e)=>{
+import { api } from '../session'
+export default function Register() {
+  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [busy, setBusy] = useState(false)
+  const change = e => setForm({ ...form, [e.target.name]: e.target.value })
+  async function submit(e) {
     e.preventDefault()
-    const res = await fetch("/api/auth/register",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(form)
-    })
-    const data = await res.json()
-    if(data.token){
-      localStorage.setItem("token", data.token)
-      setForm({name:"",email:"",password:""})
-      alert("Registered! Now login")
-    } else alert(data.msg)
+    if (busy) return
+    setError(''); setNotice('')
+    if (!form.name.trim()) { setError('Enter your name.'); return }
+    if (new TextEncoder().encode(form.password).length > 72) { setError('Password must be at most 72 bytes.'); return }
+    setBusy(true)
+    try {
+      const data = await api('/api/auth/register', { method: 'POST', body: JSON.stringify({ ...form, email: form.email.trim(), name: form.name.trim() }) })
+      setNotice(data.msg)
+      setForm({ name: '', email: '', password: '' })
+    } catch (err) { setError(err.message) }
+    finally { setBusy(false) }
   }
-  return(
-    <form onSubmit={handleSubmit} style={{background:"#1A4D2E", padding:"20px", borderRadius:"12px", color:"white", boxShadow:"0 4px 10px rgba(0,0,0,0.3)"}}>
-      <h2 style={{color:"#E8FFCE"}}>🌿 Register</h2>
-      <input placeholder="Name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required style={inputStyle} />
-      <input placeholder="Email" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required style={inputStyle} />
-      <input type="password" placeholder="Password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required style={inputStyle} />
-      <button style={btnStyle}>Register</button>
-    </form>
-  )
+  return <form className="auth-form" onSubmit={submit} aria-labelledby="register-heading" aria-busy={busy}>
+    <h2 id="register-heading">&#127807; Register</h2>
+    {error && <p className="error" role="alert">{error}</p>}
+    {notice && <p className="notice" role="status">{notice}</p>}
+    <label>Name<input name="name" autoComplete="name" value={form.name} onChange={change} required maxLength={100} /></label>
+    <label>Email<input name="email" type="email" autoComplete="email" value={form.email} onChange={change} required /></label>
+    <label>Password<input name="password" type="password" autoComplete="new-password" value={form.password} onChange={change} required minLength={8} aria-describedby="password-help" /></label>
+    <p id="password-help">Use at least 8 characters (maximum 72 bytes).</p>
+    <button disabled={busy}>{busy ? 'Please wait...' : 'Register'}</button>
+  </form>
 }
-const inputStyle = {display:"block", margin:"10px 0", padding:"10px", width:"90%", borderRadius:"6px", border:"none"}
-const btnStyle = {padding:"10px 20px", background:"#4F6F52", color:"white", border:"none", borderRadius:"6px", cursor:"pointer", fontWeight:"bold"}

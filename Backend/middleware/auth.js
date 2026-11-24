@@ -1,24 +1,15 @@
-const jwt = require("jsonwebtoken");
-
-module.exports = function (req, res, next) {
-  const token = req.header("x-auth-token");
-  if (!token) return res.status(401).json({ msg: "No token, auth denied" });
-
+const jwt = require('jsonwebtoken');
+const Session = require('../models/Session');
+module.exports = async function (req, res, next) {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  
-    if (decoded.user) {
-      req.user = decoded.user;
-    } else {
-      req.user = decoded;
-    }
-    if (!req.user.id && req.user._id) {
-      req.user.id = req.user._id;
-    }
-    console.log("Auth OK, user:", req.user.id); 
+    const decoded = jwt.verify(req.header('x-auth-token'), process.env.JWT_SECRET);
+    const session = await Session.findOne({ _id: decoded.sid, user: decoded.id, expiresAt: { $gt: new Date() } });
+    if (!session) return res.status(401).json({ msg: 'You were logged out due to inactivity.' });
+    req.user = { id: decoded.id };
+    req.session = session;
     next();
   } catch (err) {
-    console.log("Auth FAIL:", err.message);
-    res.status(401).json({ msg: "Token is not valid" });
+    if (err.name === 'MongoServerError' || err.name === 'MongooseError') return res.status(503).json({ msg: 'Session service unavailable. Please try again.' });
+    res.status(401).json({ msg: 'Your session has ended. Please log in again.' });
   }
 };
