@@ -8,6 +8,8 @@ h2 { font-size: 1.5rem; }
 h3 { font-size: 1.125rem; }
 p, h1, h2, h3, small { overflow-wrap: anywhere; }
 .welcome { text-align: center; }
+.auth-navigation { text-align: center; }
+.auth-navigation a { color: #1b5e20; font-weight: 600; }
 .auth-form { background: #1a4d2e; padding: 20px; border-radius: 12px; color: white; box-shadow: 0 4px 10px #0004; }
 .auth-form h2 { color: #e8ffce; }
 label { display: block; font-weight: 600; }

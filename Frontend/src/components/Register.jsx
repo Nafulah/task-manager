@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api } from '../session'
-export default function Register() {
+export default function Register({ onRegistered }) {
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -17,6 +17,7 @@ export default function Register() {
       const data = await api('/api/auth/register', { method: 'POST', body: JSON.stringify({ ...form, email: form.email.trim(), name: form.name.trim() }) })
       setNotice(data.msg)
       setForm({ name: '', email: '', password: '' })
+      onRegistered(data.msg)
     } catch (err) { setError(err.message) }
     finally { setBusy(false) }
   }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Register from './components/Register'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
@@ -7,14 +7,34 @@ import { api, clearSession, initialSession, isExpired, IDLE_MS, IDLE_MESSAGE } f
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(initialSession)
   const [message, setMessage] = useState(() => sessionStorage.getItem('logoutMessage') || '')
-  function logout(reason = '') {
+  const [page, setPage] = useState(() => window.location.pathname)
+  useEffect(() => {
+    const onPopState = () => setPage(window.location.pathname)
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+  useEffect(() => {
+    const destination = isLoggedIn ? '/dashboard' : page === '/register' ? '/register' : '/login'
+    if (window.location.pathname !== destination) window.history.replaceState(null, '', destination)
+  }, [isLoggedIn, page])
+  const navigate = useCallback(destination => {
+    window.history.pushState(null, '', destination)
+    setPage(destination)
+  }, [])
+  function followLink(event, destination) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    navigate(destination)
+  }
+  const logout = useCallback((reason = '') => {
     const token = localStorage.getItem('token')
     clearSession()
     if (token) fetch('/api/auth/logout', { method: 'POST', headers: { 'x-auth-token': token }, keepalive: true }).catch(() => {})
     sessionStorage.setItem('logoutMessage', reason)
     setMessage(reason)
     setIsLoggedIn(false)
-  }
+    navigate('/login')
+  }, [navigate])
   useEffect(() => {
     if (!isLoggedIn) return
     let timer, syncTimer
@@ -61,13 +81,22 @@ export default function App() {
       window.removeEventListener('focus', check)
       document.removeEventListener('visibilitychange', check)
     }
-  }, [isLoggedIn])
+  }, [isLoggedIn, logout])
   return <main className="app-shell">
     {isLoggedIn ? <Dashboard onLogout={() => logout()} /> : <>
       <h1>Task Manager MVP</h1><p className="welcome">Welcome to my Task List</p>
-      <Register /><hr />
+      {page === '/register' ? <>
+        <Register onRegistered={notice => {
+          sessionStorage.setItem('logoutMessage', notice)
+          setMessage(notice)
+          navigate('/login')
+        }} />
+        <p className="auth-navigation">Already have an account? <a href="/login" onClick={event => followLink(event, '/login')}>Log in</a></p>
+      </> : <>
       {message && <p id="logout-message" className="notice" role="status">{message}</p>}
-      <Login focusLogin={!!message} onLogin={() => { sessionStorage.removeItem('logoutMessage'); setMessage(''); setIsLoggedIn(true) }} />
+      <Login focusLogin={!!message} onLogin={() => { sessionStorage.removeItem('logoutMessage'); setMessage(''); setIsLoggedIn(true); navigate('/dashboard') }} />
+      <p className="auth-navigation">Don’t have an account? <a href="/register" onClick={event => followLink(event, '/register')}>Create one</a></p>
+      </>}
     </>}
   </main>
 }
